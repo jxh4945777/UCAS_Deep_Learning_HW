@@ -10,12 +10,17 @@ import cv2
 import os.path
 
 #参数设置
+DATA_SET = 'F-MNIST' #数据集选择 MNIST, F-MNIST
+#F-MNIST
+#LeNet5 1_epoch:0.8755 20_epoch:0.8958
+#AlexNet 1_epoch: 0.8841 20_epoch: 0.9242 30_epoch: 0.9292
+
 DOWNLOAD_DATASET = False #是否下载数据集
 BATCH_SIZE = 64 #Batch_Size
 SHUFFLE = True #是否打乱数据集
 LEARNING_RATE = 0.001 #学习率
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')#是否使用GPU
-EPOCH = 1 #Epoch
+EPOCH = 30 #Epoch
 PRETRAIN = True #是否加载预训练模型
 MODULE = 'AlexNet' #使用的网络 LeNet5, AlexNet
 PATH = './module/' #模型的保存路径
@@ -23,8 +28,12 @@ OPTIM = 'Adam' #模型的优化方式 Adam or SGD
 MOMENTUM = 0.9 #SGD动态率
 
 #数据集下载
-train_dataset = datasets.MNIST(root='./dataset/', train=True, transform=transforms.ToTensor(), download=DOWNLOAD_DATASET)
-test_dataset = datasets.MNIST(root='./dataset/', train=False, transform=transforms.ToTensor(), download=DOWNLOAD_DATASET)
+if DATA_SET == 'MNIST':
+	train_dataset = datasets.MNIST(root='./dataset/', train=True, transform=transforms.ToTensor(), download=DOWNLOAD_DATASET)
+	test_dataset = datasets.MNIST(root='./dataset/', train=False, transform=transforms.ToTensor(), download=DOWNLOAD_DATASET)
+else:
+	train_dataset = datasets.FashionMNIST(root='./dataset/', train=True, transform=transforms.ToTensor(), download=DOWNLOAD_DATASET)
+	test_dataset = datasets.FashionMNIST(root='./dataset/', train=False, transform=transforms.ToTensor(), download=DOWNLOAD_DATASET)
 
 #数据集载入
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -210,8 +219,8 @@ if __name__ == '__main__':
 				sum_loss = 0.0
 				for i, data in enumerate(train_loader):
 					inputs, labels = data
-					if DEVICE.type == 'gpu':
-						inputs, labels = Variable(inputs.cuda(), Variable(labels).cuda())
+					if DEVICE.type == 'cuda':
+						inputs, labels = Variable(inputs.cuda()), Variable((labels).cuda())
 					Optim.zero_grad()
 					outputs = Net5(inputs)
 					loss = Loss_Function(outputs, labels)
@@ -222,20 +231,20 @@ if __name__ == '__main__':
 					if i % 100 == 99:
 						print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
 						sum_loss = 0.0
-			torch.save(Net5, PATH + MODULE + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(BATCH_SIZE) + '.pkl')
+			torch.save(Net5, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(BATCH_SIZE) + '.pkl')
 			print("Module Saved.")
 		if PRETRAIN == True:
-			if os.path.isfile(PATH + MODULE + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(BATCH_SIZE) + '.pkl'):
-				Net5 = torch.load(PATH + MODULE + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(BATCH_SIZE) + '.pkl')
+			if os.path.isfile(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(BATCH_SIZE) + '.pkl'):
+				Net5 = torch.load(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(BATCH_SIZE) + '.pkl')
 				print("Module Loaded.")
 			else:
-				print("Module Don't Exist, Start Train.")
+				print("Module Isn't Exist, Start Train.")
 				for epoch in range(EPOCH):
 					sum_loss = 0.0
 					for i, data in enumerate(train_loader):
 						inputs, labels = data
-						if DEVICE.type == 'gpu':
-							inputs, labels = Variable(inputs.cuda(), Variable(labels).cuda())
+						if DEVICE.type == 'cuda':
+							inputs, labels = Variable(inputs.cuda()), Variable((labels).cuda())
 						Optim.zero_grad()
 						outputs = Net5(inputs)
 						loss = Loss_Function(outputs, labels)
@@ -246,7 +255,7 @@ if __name__ == '__main__':
 						if i % 100 == 99:
 							print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
 							sum_loss = 0.0
-				torch.save(Net5, PATH + MODULE + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(BATCH_SIZE) + '.pkl')
+				torch.save(Net5, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(BATCH_SIZE) + '.pkl')
 				print("Module Saved.")
 				print('Retrain Module Loaded.')
 		Net5.eval()  # 将模型变换为测试模式
@@ -255,7 +264,7 @@ if __name__ == '__main__':
 
 		for data_test in test_loader:
 			images, labels = data_test
-			if DEVICE.type == 'gpu':
+			if DEVICE.type == 'cuda':
 				images, labels = Variable(images).cuda(), Variable(labels).cuda()
 			output_test = Net5(images)
 			_, predicted = torch.max(output_test, 1)
@@ -271,8 +280,8 @@ if __name__ == '__main__':
 				sum_loss = 0.0
 				for i, data in enumerate(train_loader):
 					inputs, labels = data
-					if DEVICE.type == 'gpu':
-						inputs, labels = Variable(inputs.cuda(), Variable(labels).cuda())
+					if DEVICE.type == 'cuda':
+						inputs, labels = Variable(inputs.cuda()), Variable((labels).cuda())
 					Optim.zero_grad()
 					outputs = Alex(inputs)
 					loss = Loss_Function(outputs, labels)
@@ -283,23 +292,23 @@ if __name__ == '__main__':
 					if i % 100 == 99:
 						print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
 						sum_loss = 0.0
-			torch.save(Alex, PATH + MODULE + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+			torch.save(Alex, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
 				BATCH_SIZE) + '.pkl')
 			print("Module Saved.")
 		if PRETRAIN == True:
-			if os.path.isfile(PATH + MODULE + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+			if os.path.isfile(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
 					BATCH_SIZE) + '.pkl'):
-				Net5 = torch.load(PATH + MODULE + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+				Alex = torch.load(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
 					BATCH_SIZE) + '.pkl')
 				print("Module Loaded.")
 			else:
-				print("Module Don't Exist, Start Train.")
+				print("Module Isn't Exist, Start Train.")
 				for epoch in range(EPOCH):
 					sum_loss = 0.0
 					for i, data in enumerate(train_loader):
 						inputs, labels = data
-						if DEVICE.type == 'gpu':
-							inputs, labels = Variable(inputs.cuda(), Variable(labels).cuda())
+						if DEVICE.type == 'cuda':
+							inputs, labels = Variable(inputs.cuda()), Variable((labels).cuda())
 						Optim.zero_grad()
 						outputs = Alex(inputs)
 						loss = Loss_Function(outputs, labels)
@@ -310,7 +319,7 @@ if __name__ == '__main__':
 						if i % 100 == 99:
 							print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
 							sum_loss = 0.0
-				torch.save(Alex, PATH + MODULE + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+				torch.save(Alex, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
 					BATCH_SIZE) + '.pkl')
 				print("Module Saved.")
 				print('Retrain Module Loaded.')
@@ -320,7 +329,7 @@ if __name__ == '__main__':
 
 		for data_test in test_loader:
 			images, labels = data_test
-			if DEVICE.type == 'gpu':
+			if DEVICE.type == 'cuda':
 				images, labels = Variable(images).cuda(), Variable(labels).cuda()
 			output_test = Alex(images)
 			_, predicted = torch.max(output_test, 1)
