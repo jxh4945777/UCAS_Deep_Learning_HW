@@ -200,6 +200,9 @@ if MODULE == 'AlexNet':
 		)
 
 if __name__ == '__main__':
+	if not os.path.exists(PATH):
+		os.makedirs(PATH)
+
 	if MODULE == 'LeNet5':#LeNet5
 		print(Net5)
 		if PRETRAIN == False:
