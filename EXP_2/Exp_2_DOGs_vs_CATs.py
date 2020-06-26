@@ -10,17 +10,17 @@ import cv2
 import os.path
 
 #参数设置
-DATA_SET = 'DOGs_vs_CATs' #数据集选择 MNIST, F-MNIST
+DATA_SET = 'DOGs_vs_CATs' #数据集选择
 #DOGs_vs_CATs
-#AlexNet 1_epoch: 0.8841 20_epoch: 0.9242 30_epoch: 0.9292
+#AlexNet 30_epoch: 0.752 50_epoch:
 
-BATCH_SIZE = 64 #Batch_Size
+BATCH_SIZE = 32 #Batch_Size
 SHUFFLE = True #是否打乱数据集
 LEARNING_RATE = 0.001 #学习率
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')#是否使用GPU
-EPOCH = 30 #Epoch
+EPOCH = 50 #Epoch
 PRETRAIN = False #是否加载预训练模型
-MODULE = 'AlexNet' #使用的网络 LeNet5, AlexNet
+MODULE = 'ResNet50' #使用的网络 AlexNet, ResNet50
 PATH = './module/' #模型的保存路径
 OPTIM = 'Adam' #模型的优化方式 Adam or SGD
 MOMENTUM = 0.9 #SGD动态率
@@ -142,40 +142,32 @@ if MODULE == 'AlexNet':
 			lr=LEARNING_RATE,
 			momentum=MOMENTUM
 		)
+else:
+	ResNet50 = torchvision.models.resnet50(pretrained=True)
+	ResNet50.fc = nn.Sequential(
+	nn.Linear(2048,2))
+	ResNet50.to(DEVICE)
+	Loss_Function = nn.CrossEntropyLoss()
+	if OPTIM == 'Adam':
+		# Optim使用Adam
+		Optim = optim.Adam(
+			ResNet50.parameters(),
+			lr=LEARNING_RATE,
+		)
+	else:
+		Optim = optim.SGD(
+			ResNet50.parameters(),
+			lr=LEARNING_RATE,
+			momentum=MOMENTUM
+		)
+
 
 if __name__ == '__main__':
 	if not os.path.exists(PATH):
 		os.makedirs(PATH)
-
-	print(Alex)
-	if PRETRAIN == False:
-		for epoch in range(EPOCH):
-			sum_loss = 0.0
-			for i, data in enumerate(train_loader):
-				inputs, labels = data
-				if DEVICE.type == 'cuda':
-					inputs, labels = Variable(inputs.cuda()), Variable((labels).cuda())
-				Optim.zero_grad()
-				outputs = Alex(inputs)
-				loss = Loss_Function(outputs, labels)
-				loss.backward()
-				Optim.step()
-
-				sum_loss += loss.item()
-				if i % 100 == 99:
-					print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
-					sum_loss = 0.0
-		torch.save(Alex, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
-			BATCH_SIZE) + '.pkl')
-		print("Module Saved.")
-	if PRETRAIN == True:
-		if os.path.isfile(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
-				BATCH_SIZE) + '.pkl'):
-			Alex = torch.load(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
-				BATCH_SIZE) + '.pkl')
-			print("Module Loaded.")
-		else:
-			print("Module Isn't Exist, Start Train.")
+	if MODULE == 'AlexNet':
+		print(Alex)
+		if PRETRAIN == False:
 			for epoch in range(EPOCH):
 				sum_loss = 0.0
 				for i, data in enumerate(train_loader):
@@ -192,22 +184,175 @@ if __name__ == '__main__':
 					if i % 100 == 99:
 						print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
 						sum_loss = 0.0
+					correct = 0
+					total = 0
+
+				for data_test in test_loader:
+					images, labels = data_test
+					if DEVICE.type == 'cuda':
+						images, labels = Variable(images).cuda(), Variable(labels).cuda()
+					output_test = Alex(images)
+					_, predicted = torch.max(output_test, 1)
+					total += labels.size(0)
+					correct += (predicted == labels).sum()
+
+				print("Test acc: {0}".format(correct.item() /
+				                             len(dataset_test)))
+
 			torch.save(Alex, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
 				BATCH_SIZE) + '.pkl')
 			print("Module Saved.")
-			print('Retrain Module Loaded.')
-	Alex.eval()  # 将模型变换为测试模式
-	correct = 0
-	total = 0
+		if PRETRAIN == True:
+			if os.path.isfile(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+					BATCH_SIZE) + '.pkl'):
+				Alex = torch.load(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+					BATCH_SIZE) + '.pkl')
+				print("Module Loaded.")
+			else:
+				print("Module Isn't Exist, Start Train.")
+				for epoch in range(EPOCH):
+					sum_loss = 0.0
+					for i, data in enumerate(train_loader):
+						inputs, labels = data
+						if DEVICE.type == 'cuda':
+							inputs, labels = Variable(inputs.cuda()), Variable((labels).cuda())
+						Optim.zero_grad()
+						outputs = Alex(inputs)
+						loss = Loss_Function(outputs, labels)
+						loss.backward()
+						Optim.step()
 
-	for data_test in test_loader:
-		images, labels = data_test
-		if DEVICE.type == 'cuda':
-			images, labels = Variable(images).cuda(), Variable(labels).cuda()
-		output_test = Alex(images)
-		_, predicted = torch.max(output_test, 1)
-		total += labels.size(0)
-		correct += (predicted == labels).sum()
+						sum_loss += loss.item()
+						if i % 100 == 99:
+							print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
+							sum_loss = 0.0
 
-	print("Test acc: {0}".format(correct.item() /
-	                             len(dataset_test)))
+					correct = 0
+					total = 0
+					for data_test in test_loader:
+						images, labels = data_test
+						if DEVICE.type == 'cuda':
+							images, labels = Variable(images).cuda(), Variable(labels).cuda()
+						output_test = Alex(images)
+						_, predicted = torch.max(output_test, 1)
+						total += labels.size(0)
+						correct += (predicted == labels).sum()
+
+					print("Test acc: {0}".format(correct.item() /
+					                                   len(dataset_test)))
+
+
+				torch.save(Alex, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+				BATCH_SIZE) + '.pkl')
+				print("Module Saved.")
+				print('Retrain Module Loaded.')
+		Alex.eval()  # 将模型变换为测试模式
+		correct = 0
+		total = 0
+
+		for data_test in test_loader:
+			images, labels = data_test
+			if DEVICE.type == 'cuda':
+				images, labels = Variable(images).cuda(), Variable(labels).cuda()
+			output_test = Alex(images)
+			_, predicted = torch.max(output_test, 1)
+			total += labels.size(0)
+			correct += (predicted == labels).sum()
+
+		print("Final Test acc: {0}".format(correct.item() /
+		                             len(dataset_test)))
+	else:
+		if PRETRAIN == False:
+			for epoch in range(EPOCH):
+				sum_loss = 0.0
+				for i, data in enumerate(train_loader):
+					inputs, labels = data
+					if DEVICE.type == 'cuda':
+						inputs, labels = Variable(inputs.cuda()), Variable((labels).cuda())
+					Optim.zero_grad()
+					outputs = ResNet50(inputs)
+					loss = Loss_Function(outputs, labels)
+					loss.backward()
+					Optim.step()
+
+					sum_loss += loss.item()
+					if i % 100 == 99:
+						print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
+						sum_loss = 0.0
+					correct = 0
+					total = 0
+
+				for data_test in test_loader:
+					images, labels = data_test
+					if DEVICE.type == 'cuda':
+						images, labels = Variable(images).cuda(), Variable(labels).cuda()
+					output_test = ResNet50(images)
+					_, predicted = torch.max(output_test, 1)
+					total += labels.size(0)
+					correct += (predicted == labels).sum()
+
+				print("Test acc: {0}".format(correct.item() /
+				                             len(dataset_test)))
+
+			torch.save(ResNet50, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+				BATCH_SIZE) + '.pkl')
+			print("Module Saved.")
+		if PRETRAIN == True:
+			if os.path.isfile(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+					BATCH_SIZE) + '.pkl'):
+				Alex = torch.load(PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+					BATCH_SIZE) + '.pkl')
+				print("Module Loaded.")
+			else:
+				print("Module Isn't Exist, Start Train.")
+				for epoch in range(EPOCH):
+					sum_loss = 0.0
+					for i, data in enumerate(train_loader):
+						inputs, labels = data
+						if DEVICE.type == 'cuda':
+							inputs, labels = Variable(inputs.cuda()), Variable((labels).cuda())
+						Optim.zero_grad()
+						outputs = ResNet50(inputs)
+						loss = Loss_Function(outputs, labels)
+						loss.backward()
+						Optim.step()
+
+						sum_loss += loss.item()
+						if i % 100 == 99:
+							print('Epoch: %d, Step: %d loss: %.03f' % (epoch + 1, i + 1, sum_loss / 100))
+							sum_loss = 0.0
+
+					correct = 0
+					total = 0
+					for data_test in test_loader:
+						images, labels = data_test
+						if DEVICE.type == 'cuda':
+							images, labels = Variable(images).cuda(), Variable(labels).cuda()
+						output_test = ResNet50(images)
+						_, predicted = torch.max(output_test, 1)
+						total += labels.size(0)
+						correct += (predicted == labels).sum()
+
+					print("Test acc: {0}".format(correct.item() /
+					                             len(dataset_test)))
+
+
+				torch.save(ResNet50, PATH + MODULE + '_' + DATA_SET + '_' + OPTIM + '_' + str(EPOCH) + '_' + str(LEARNING_RATE) + '_' + str(
+					BATCH_SIZE) + '.pkl')
+				print("Module Saved.")
+				print('Retrain Module Loaded.')
+		ResNet50.eval()  # 将模型变换为测试模式
+		correct = 0
+		total = 0
+
+		for data_test in test_loader:
+			images, labels = data_test
+			if DEVICE.type == 'cuda':
+				images, labels = Variable(images).cuda(), Variable(labels).cuda()
+			output_test = ResNet50(images)
+			_, predicted = torch.max(output_test, 1)
+			total += labels.size(0)
+			correct += (predicted == labels).sum()
+
+		print("Final Test acc: {0}".format(correct.item() /
+		                                   len(dataset_test)))
