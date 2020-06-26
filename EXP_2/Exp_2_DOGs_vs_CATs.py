@@ -12,7 +12,8 @@ import os.path
 #参数设置
 DATA_SET = 'DOGs_vs_CATs' #数据集选择
 #DOGs_vs_CATs
-#AlexNet 30_epoch: 0.752 50_epoch:
+#AlexNet 30_epoch: 0.752 50_epoch: 0.802
+#ResNet50 50_epoch: 0.9412
 
 BATCH_SIZE = 32 #Batch_Size
 SHUFFLE = True #是否打乱数据集
