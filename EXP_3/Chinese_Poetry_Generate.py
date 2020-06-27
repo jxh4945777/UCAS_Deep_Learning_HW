@@ -52,7 +52,7 @@ class PoetryModel(nn.Module):
 		return output, hidden
 
 # 定义模型
-model = PoetryModel(len(word2ix), embedding_dim = EMBEDDING_DIM, hidden_dim = HIDDEN_DIM)
+model = PoetryModel(len(word2ix), embedding_dim = EMBEDDING_DIM, hidden_dim = HIDDEN_DIM).to(DEVICE)
 optimizer = optim.Adam(model.parameters(), lr = LEARNING_RATE)
 criterion = nn.CrossEntropyLoss()
 loss_meter = tnt.meter.AverageValueMeter()
