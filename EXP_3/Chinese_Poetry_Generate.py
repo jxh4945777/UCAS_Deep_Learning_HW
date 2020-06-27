@@ -68,6 +68,8 @@ for epoch in range(EPOCH):
 		data_ = data_.to(DEVICE)
 		optimizer.zero_grad()
 		input_, target = data_[:-1, :], data_[1:, :]
+		if DEVICE.type == 'cuda':
+			input_, target = Variable(input_.cuda()), Variable((target).cuda())
 		output, _ = model(input_)
 		loss = criterion(output, target.view(-1))
 		loss.backward()
@@ -92,12 +94,16 @@ with torch.no_grad():
 		if i < start_words_len:
 			w = results[i]
 			input = input.data.new([word2ix[w]]).view(1, 1)
+			if DEVICE.type == 'cuda':
+				input = Variable(input).cuda()
 		# 否则将output作为下一个input进行
 		else:
 			top_index = output.data[0].topk(1)[1][0].item()
 			w = ix2word[top_index]
 			results.append(w)
 			input = input.data.new([top_index]).view(1, 1)
+			if DEVICE.type == 'cuda':
+				input = Variable(input).cuda()
 			if w == '<EOP>':
 				del results[-1]
 				break
