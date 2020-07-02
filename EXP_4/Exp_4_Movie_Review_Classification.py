@@ -10,47 +10,96 @@ import data_preprocess
 from model import CNN_LSTM
 from sklearn import metrics
 
+torch.cuda.set_device(0)
+# torch.backends.cudnn.enabled = False
+
 #参数
 
 DEVICE_ = torch.device('cuda' if torch.cuda.is_available() else 'cpu')#是否使用GPU
 
+# parser = argparse.ArgumentParser(description='Movie_Review_Classification')
+# parser.add_argument('-LEARNING_RATE', type=float, default=0.001, help='')
+# parser.add_argument('-L2',type=float,default=0,help='')
+# parser.add_argument('-EPOCH', type=int, default=10, help='')
+# parser.add_argument('-BATCH_SIZE', type=int, default=32, help='')
+# parser.add_argument('-EMBEDDING_DIM', type=int, default=300, help='')
+# parser.add_argument('-HIDDEN_DIM', type=int, default=300, help='')
+# parser.add_argument('-KERNEL_NUM', type=int, default=100, help='')
+# parser.add_argument('-NUM_LAYERS', type=int, default=3, help='')
+# parser.add_argument('-NUM_CLASSES', type=int, default=2, help='')
+# parser.add_argument('-DROPOUT', type=float, default=0.3, help='')
+# parser.add_argument('-SEQUENCE_LENGTH', type=int, default=50, help='')
+# parser.add_argument('-OPTIM', type=str, default="Adam", help='')
+# parser.add_argument('-EARLY_STOPPING', type=int, default=400, help='')
+# parser.add_argument('-KERNEL_SIZES', type=str, default='3,4,5', help='')
+# parser.add_argument('-MOMENTUM', type=float, default=0.9, help='')
+#
+# parser.add_argument('-DEVICE', type=str, default=DEVICE_.type, help='')
+# parser.add_argument('-MODULE_PATH', type=str, default="./module/", help='')
+# parser.add_argument('-PRETRAIN', type=bool, default=False, help='')
+# parser.add_argument('-PRETRAIN_PATH', type=str, default="./module/model.pkl", help='')
+# parser.add_argument('-ALREADY_WORD_CUT', type=bool, default=True, help='')
+# parser.add_argument('-PRE_EMBEDDING', type=bool, default=True, help='')
+# parser.add_argument('-EMBEDDING_PATH', type=str, default="./embedding/sgns.sogou.char", help='')
+# parser.add_argument('-EMBEDDING_STATIC', type=bool, default=False, help='')
+# parser.add_argument('-SAVE_BEST', type=bool, default=True, help='')
+# parser.add_argument('-SAVE_DIR', type=str, default="./snapshot", help='')
+# parser.add_argument('-TRAIN_DATA', type=str, default="train_new.txt", help='')
+# parser.add_argument('-VAL_DATA', type=str, default="validation_new.txt", help='')
+# parser.add_argument('-TEST_DATA', type=str, default="test_new.txt", help='')
+#
+#
+# parser.add_argument('-LOG_INTERVAL', type=int, default=1,help='')
+# parser.add_argument('-TEST_INTERVAL', type=int, default=100,help='')
+#
+# args = parser.parse_args()
+
 parser = argparse.ArgumentParser(description='Movie_Review_Classification')
 parser.add_argument('-LEARNING_RATE', type=float, default=0.001, help='')
-parser.add_argument('-EPOCH', type=int, default=50, help='')
-parser.add_argument('-BATCH_SIZE', type=int, default=64, help='')
-parser.add_argument('-EMBEDDING_DIM', type=int, default=300, help='')
-parser.add_argument('-HIDDEN_DIM', type=int, default=300, help='')
-parser.add_argument('-KERNEL_NUM', type=int, default=100, help='')
-parser.add_argument('-NUM_LAYERS', type=int, default=2, help='')
+parser.add_argument('-L2',type=float,default=0,help='')
+parser.add_argument('-EPOCH', type=int, default=20, help='')
+parser.add_argument('-BATCH_SIZE', type=int, default=32, help='')
+parser.add_argument('-EMBEDDING_DIM', type=int, default=50, help='')
+parser.add_argument('-HIDDEN_DIM', type=int, default=50, help='')
+parser.add_argument('-KERNEL_NUM', type=int, default=256, help='')
+parser.add_argument('-NUM_LAYERS', type=int, default=3, help='')
 parser.add_argument('-NUM_CLASSES', type=int, default=2, help='')
 parser.add_argument('-DROPOUT', type=float, default=0.5, help='')
-parser.add_argument('-NUM_LAYERS', type=int, default=2, help='')
-parser.add_argument('-SEQUENCE_LENGTH', type=int, default=32, help='')
-parser.add_argument('-OPTIM = "Adam"', type=str, default="Adam", help='')
-parser.add_argument('-EARLY_STOPPING', type=int, default=1200, help='')
+parser.add_argument('-SEQUENCE_LENGTH', type=int, default=50, help='')
+parser.add_argument('-OPTIM', type=str, default="Adam", help='')
+parser.add_argument('-EARLY_STOPPING', type=int, default=800, help='')
+parser.add_argument('-KERNEL_SIZES', type=str, default='3,4,5', help='')
+parser.add_argument('-MOMENTUM', type=float, default=0.9, help='')
 
 parser.add_argument('-DEVICE', type=str, default=DEVICE_.type, help='')
 parser.add_argument('-MODULE_PATH', type=str, default="./module/", help='')
 parser.add_argument('-PRETRAIN', type=bool, default=False, help='')
 parser.add_argument('-PRETRAIN_PATH', type=str, default="./module/model.pkl", help='')
-parser.add_argument('-ALREADY_WORD_CUT', type=bool, default=False, help='')
+parser.add_argument('-ALREADY_WORD_CUT', type=bool, default=True, help='')
 parser.add_argument('-PRE_EMBEDDING', type=bool, default=True, help='')
-parser.add_argument('-EMBEDDING_PATH', type=str, default="./embedding/sgns.sogou.char", help='')
-parser.add_argument('-EMBEDDING_STATIC', type=bool, default=False, help='')
+parser.add_argument('-EMBEDDING_PATH', type=str, default="./embedding/embedding.50", help='')
+parser.add_argument('-EMBEDDING_STATIC', type=bool, default=True, help='')
+parser.add_argument('-SAVE_BEST', type=bool, default=True, help='')
 parser.add_argument('-SAVE_DIR', type=str, default="./snapshot", help='')
+parser.add_argument('-TRAIN_DATA', type=str, default="train_new.txt", help='')
+parser.add_argument('-VAL_DATA', type=str, default="validation_new.txt", help='')
+parser.add_argument('-TEST_DATA', type=str, default="test_new.txt", help='')
+
 
 parser.add_argument('-LOG_INTERVAL', type=int, default=1,help='')
 parser.add_argument('-TEST_INTERVAL', type=int, default=100,help='')
 
 args = parser.parse_args()
 
+
+
 def load_word_vectors(embedding_path):#加载词向量
 	vectors = Vectors(name=embedding_path)
 	return vectors
 
 def load_dataset(text_field, label_field, args, **kwargs):
-	train_dataset, dev_dataset, test_dataset = data_preprocess.get_dataset('data', text_field, label_field, args.ALREADY_WORD_CUT)
-	if args.EMBEDDING_STATIC and args.PRE_EMBEDDING:#有预训练的词向量
+	train_dataset, dev_dataset, test_dataset = data_preprocess.get_dataset('dataset', text_field, label_field, args.ALREADY_WORD_CUT, args)
+	if args.PRE_EMBEDDING:#有预训练的词向量
 		print("loading_word_embedding.....")
 		vectors = load_word_vectors(args.EMBEDDING_PATH)
 		text_field.build_vocab(train_dataset, dev_dataset, vectors=vectors)
@@ -64,7 +113,7 @@ def load_dataset(text_field, label_field, args, **kwargs):
 	train_iter, dev_iter, test_iter = data.Iterator.splits(
 		(train_dataset, dev_dataset,test_dataset),
 		#显存不一定够用
-		batch_sizes=(args.BATCH_SIZE, args.BATCH_SIZE, len(test_dataset)),
+		batch_sizes=(args.BATCH_SIZE, args.BATCH_SIZE, args.BATCH_SIZE),
 		sort_key=lambda x: len(x.text),#指定分批次的方法
 		**kwargs, sort_within_batch = False, sort = False)#切分batch
 	return train_iter, dev_iter, test_iter
@@ -86,17 +135,22 @@ def train_model(model, train_iter, dev_iter, args):
 	model.train()
 	if args.DEVICE == "cuda":
 		model.cuda()
-	if args.optim == 'sgd':
-		optimizer = optim.SGD(model.parameters(),lr=args.lr,weight_decay=args.l2)
-	elif args.optim == 'momentum':
-		optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.l2,nesterov=True)
+	if args.OPTIM == 'sgd':
+		optimizer = optim.SGD(model.parameters(),lr=args.LEARNING_RATE,weight_decay=args.L2)
+	elif args.OPTIM == 'momentum':
+		optimizer = optim.SGD(model.parameters(), lr=args.LEARNING_RATE, momentum=args.MOMENTUM, weight_decay=args.L2,nesterov=True)
 	else:
-		optimizer = optim.Adam(model.parameters(),lr=1e-3,betas=(0.9,0.999),eps=1e-8,weight_decay=args.l2)
+		optimizer = optim.Adam(model.parameters(),lr=args.LEARNING_RATE,betas=(0.9,0.999),eps=1e-8,weight_decay=args.L2)
 	best_acc = 0
 	last_step = 0
 	saved_model_name = ''
+	finish_train = False
 	for epoch in range(1, args.EPOCH + 1):
+		if finish_train == True:
+			break
 		steps = 0
+		last_epoch = 0
+		max_step = 0
 		for batch in train_iter:
 			short_text, target = batch.text, batch.cluster_name
 			with torch.no_grad():
@@ -109,6 +163,8 @@ def train_model(model, train_iter, dev_iter, args):
 			loss.backward()
 			clip_gradient(model, 1) #梯度裁剪
 			optimizer.step()
+			if steps > max_step:
+				max_step = steps
 			if steps % args.LOG_INTERVAL == 0:
 				corrects = (torch.max(logits, 1)[1].view(target.size()).data == target.data).sum()
 				corrects_ = corrects.tolist()
@@ -117,19 +173,20 @@ def train_model(model, train_iter, dev_iter, args):
 			                                                                                            train_acc,corrects,batch.batch_size))
 			steps += 1
 
-			if steps % args.test_interval == 0:
+			if steps % args.TEST_INTERVAL == 0:
 				dev_acc = eval_model(model, dev_iter, args)
 				if dev_acc > best_acc:
 					best_acc = dev_acc
 					last_step = steps
-					if args.save_best:
+					last_epoch = epoch
+					if args.SAVE_BEST:
 						print('Saving best model, acc: {:.4f}%\n'.format(best_acc))
 						saved_model_name = save(model, args.SAVE_DIR, 'best',epoch, steps)
 				else:
-					if steps - last_step >= args.EARLY_STOPPING:
+					if (epoch - last_epoch) + (steps -last_step) >= args.EARLY_STOPPING:
 						print('\nearly stop by {} steps, acc: {:.4f}%'.format(args.EARLY_STOPPING, best_acc))
-						raise KeyboardInterrupt
-					pass
+						finish_train = True
+						break
 				model.train()
 	return  saved_model_name
 
@@ -138,7 +195,7 @@ def eval_model(model,data_iter,args):
 	model.eval()
 	for batch in data_iter:
 		short_text, target = batch.text, batch.cluster_name
-		with torch.no_grad():  # 不需要梯度修改的内容 -- 这里得加一些内容，原来GRM在Variable定义no_grad
+		with torch.no_grad():  # 不需要梯度修改的内容
 			short_text.t_(), target.sub_(1) # _t()代表转置
 		if args.DEVICE == "cuda":
 			short_text, target = short_text.cuda(), target.cuda()
@@ -163,9 +220,9 @@ def test_model(model,data_iter,args,index2class):
 	B = []
 	for batch in data_iter:
 		short_text, target = batch.text, batch.cluster_name
-		with torch.no_grad():  # 不需要梯度修改的内容 -- 这里得加一些内容，原来GRM在Variable定义no_grad
+		with torch.no_grad():  # 不需要梯度修改的内容
 			short_text.t_(), target.sub_(1)  # _t()代表转置
-		if args.cuda:
+		if args.DEVICE == "cuda":
 			short_text, target = short_text.cuda(), target.cuda()
 		logits =  model(short_text)
 
@@ -180,10 +237,10 @@ def test_model(model,data_iter,args,index2class):
 	avg_loss /= size
 	corrects_ = corrects.tolist()
 	accuracy = 100.0 * corrects_ / size
-	mylog = open('my_log'+str(args.embed_dim) + '.txt', mode='a', encoding='utf-8')
+	# mylog = open('my_log'+str(args.EMBEDDING_DIM) + '.txt', mode='a', encoding='utf-8')
 
 	s = torch.max(logits, 1)[1].view(target.size()).data.cpu().numpy()
-	output_file_entity = open('s_' + str(args.embed_dim) + '.txt', 'a+', encoding='utf-8')
+	output_file_entity = open('s_' + str(args.EMBEDDING_DIM) + '.txt', 'a+', encoding='utf-8')
 	output_file_entity.write(str(s))
 	output_file_entity.close()
 
@@ -217,10 +274,12 @@ if __name__ == "__main__":
 	text_field = data.Field(lower=True)#具体文本
 	label_field = data.Field(sequential=False)#每个文本的标签
 
+
 	train_iter, dev_iter, test_iter = load_dataset(text_field, label_field, args, device=-1, repeat=False, shuffle=True)#数据载入
 	args.VOCAB_SIZE = len(text_field.vocab)#文章中的表达词汇数目
-	args.OUTPUT_SIZE = args.HIDDEN_SIZE
-	args.BEST_MODEL = "best_" + str(args.embed_dim) + ".pt"
+	args.OUTPUT_SIZE = args.HIDDEN_DIM
+	args.BEST_MODEL = "best_" + str(args.EMBEDDING_DIM) + ".pt"
+	args.KERNEL_SIZES = [int(k) for k in args.KERNEL_SIZES.split(',')]
 
 	#创建vocab字典
 	index2class = label_field.vocab.itos[1:]
@@ -233,7 +292,7 @@ if __name__ == "__main__":
 			continue
 		print('\t{}={}'.format(attr.upper(), value))
 
-	model = CNN_LSTM(args, index2class)
+	model = CNN_LSTM(index2class, args)
 	model_name = train_model(model, train_iter, dev_iter, args)
 	print('\n'+model_name)
 
